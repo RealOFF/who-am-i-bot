@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "baseUrl": "src",
+    "outDir": "dist",
+     "strict": true,
+     "strictNullChecks": true,
+     "composite": true,
+     "lib": ["ESNext", "DOM"],
+     "module": "commonjs",
+     "target": "ESNext",
+     "resolveJsonModule": true,
+     "esModuleInterop": true,
+     "forceConsistentCasingInFileNames": true,
+     "strictPropertyInitialization": true,
+     "isolatedModules": true,
+     "moduleResolution": "node",
+     "preserveWatchOutput": true,
+     "skipLibCheck": true,
+     "useDefineForClassFields": true,
+     "allowSyntheticDefaultImports": true,
+     "allowJs": false,
+     "noUnusedLocals": true,
+     "noUnusedParameters": true,
+     "strictFunctionTypes": true
+  },
+  "ts-node": { "swc": true },
+  "include": [
+    "src",
+    "vite.config.ts",
+    "vitest.setup.ts"
+ ]
+}

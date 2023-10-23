@@ -1,0 +1,29 @@
+# Node.js related
+node_modules/
+npm-debug.log
+*.log
+*.lock
+
+# Environment Variables (if using dotenv or similar)
+.env
+
+# Dependency directories
+jspm_packages/
+typings/
+
+# Optional: Exclude build directories and files
+# Replace these with your specific build paths
+dist/
+build/
+*.bundle.js
+*.min.js
+*.js.map
+
+# IDE and editor specific files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
