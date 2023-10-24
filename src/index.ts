@@ -1,4 +1,4 @@
-import { botModule } from 'modules/bot';
+import { botModule } from './modules/bot';
 
 const destroy = botModule.init();
 
