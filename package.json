@@ -33,6 +33,7 @@
   "homepage": "https://github.com/RealOFF/who-am-i-bot#readme",
   "dependencies": {
     "node-telegram-bot-api": "^0.63.0",
+    "winston": "^3.11.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
