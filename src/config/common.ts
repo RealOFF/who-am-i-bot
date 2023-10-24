@@ -7,5 +7,5 @@ const schema = z.object({
 
 export const CommonConfig = schema.parse({
   BOT_TOKEN: process.env.BOT_TOKEN,
-  IS_PROD: process.env.NODE_ENV === 'production'
-})
+  IS_PROD: process.env.NODE_ENV === 'production',
+});

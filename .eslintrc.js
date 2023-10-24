@@ -1,9 +1,5 @@
 module.exports = {
-  extends: [
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-    './.prettierrc',
-  ],
+  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'],
   parser: '@typescript-eslint/parser',
   plugins: ['@typescript-eslint', 'prettier', 'unused-imports'],
   ignorePatterns: ['node_modules', '.turbo', 'dist', 'dev-dist', 'coverage'],
@@ -37,4 +33,5 @@ module.exports = {
       },
     ],
   },
+  env: { node: true },
 };
