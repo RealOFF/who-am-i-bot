@@ -32,7 +32,9 @@
   },
   "homepage": "https://github.com/RealOFF/who-am-i-bot#readme",
   "dependencies": {
+    "@prisma/client": "5.5.0",
     "node-telegram-bot-api": "^0.63.0",
+    "prisma": "^5.5.0",
     "winston": "^3.11.0",
     "zod": "^3.22.4"
   },
