@@ -32,8 +32,6 @@ export function createBotCommandsController(bot: TelegramBot) {
   bot.on('message', async message => {
     const commandEntity = message.entities?.find(({ type }) => type === 'bot_command');
     if (!commandEntity || !message.text) {
-      logger.warn('Command entity not found');
-
       return;
     }
 
@@ -52,7 +50,7 @@ export function createBotCommandsController(bot: TelegramBot) {
       const response = await handleBotCommand(commandName, message);
       const chatId = message.chat.id;
 
-      bot.sendMessage(chatId, response);
+      await bot.sendMessage(chatId, response);
     } catch (error) {
       logger.error('Command error', error);
     }
