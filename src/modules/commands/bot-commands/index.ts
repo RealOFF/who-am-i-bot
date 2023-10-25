@@ -1,1 +1,2 @@
-export * from './commands.controller';
+export * from './bot-commands.controller';
+export { BotCommands } from './bot-commands.config';

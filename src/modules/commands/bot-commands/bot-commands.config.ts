@@ -1,25 +1,19 @@
-import { BotCommand } from 'node-telegram-bot-api';
-import { z } from 'zod';
+import type { BotCommand } from 'node-telegram-bot-api';
 
 export enum BotCommands {
-  START = '/start',
+  START = '^/start\\b',
+  ATTEND_GAME = '/start (.+)',
   CREATE_GAME = '/create_game',
+  START_GAME = '/start_game',
 }
-
-export const startSchema = z.object({
-  id: z.number(),
-  username: z.string(),
-  language: z.string(),
-});
-
-export const createGameSchema = z.object({
-  creatorId: z.number(),
-  name: z.string().optional(),
-});
 
 export const COMMANDS_CONFIG: BotCommand[] = [
   {
     command: BotCommands.CREATE_GAME,
     description: 'Create new game session',
+  },
+  {
+    command: BotCommands.START_GAME,
+    description: 'Start game process',
   },
 ];

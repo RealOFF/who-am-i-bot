@@ -1,58 +1,42 @@
-import TelegramBot, { Message } from 'node-telegram-bot-api';
-import { getCommands, isCommand } from './bot-commands.service';
-import { BotCommands, startSchema } from './bot-commands.config';
+import { type Message } from 'node-telegram-bot-api';
+import type TelegramBot from 'node-telegram-bot-api';
+import { getCommands } from './bot-commands.service';
+import { BotCommands } from './bot-commands.config';
+import { startSchema } from './bot-commands.validator';
 import { db, logger } from '../../../core';
+import {
+  createCreateGameCommandHandler,
+  createAttendGameCommandHandler,
+  createStartGameCommandHandler,
+} from '../../game';
 
-const CommandsHandlers = {
-  [BotCommands.CREATE_GAME]: async () => {
-    return 'Specify the name of the game room.';
-  },
-  [BotCommands.START]: async (message: Message) => {
-    const data = startSchema.parse({
-      id: message.from?.id,
-      username: message.from?.username,
-      language: message.from?.language_code,
-    });
+function createStartCommandHandler(bot: TelegramBot) {
+  bot.onText(new RegExp(BotCommands.START), async (message: Message) => {
+    try {
+      const data = startSchema.parse({
+        id: message.from?.id,
+        username: message.from?.username,
+        language: message.from?.language_code,
+      });
+      const chatId = message.chat.id;
 
-    await db.user.create({
-      data,
-    });
+      await db.user.create({ data });
 
-    return 'Hello. Chat started.';
-  },
-};
-
-function handleBotCommand(commandName: BotCommands, message: Message) {
-  return CommandsHandlers[commandName](message);
+      bot.sendMessage(chatId, 'Hello. Chat started.');
+    } catch (error) {
+      logger.error('Error in handler', {
+        context: BotCommands.START,
+        error,
+      });
+    }
+  });
 }
 
 export function createBotCommandsController(bot: TelegramBot) {
   bot.setMyCommands(getCommands());
 
-  bot.on('message', async message => {
-    const commandEntity = message.entities?.find(({ type }) => type === 'bot_command');
-    if (!commandEntity || !message.text) {
-      return;
-    }
-
-    const commandName = message.text.slice(
-      commandEntity.offset,
-      commandEntity.offset + commandEntity.length
-    );
-
-    if (!isCommand(commandName)) {
-      logger.warn('Unknown command');
-
-      return;
-    }
-
-    try {
-      const response = await handleBotCommand(commandName, message);
-      const chatId = message.chat.id;
-
-      await bot.sendMessage(chatId, response);
-    } catch (error) {
-      logger.error('Command error', error);
-    }
-  });
+  createStartCommandHandler(bot);
+  createCreateGameCommandHandler(bot);
+  createAttendGameCommandHandler(bot);
+  createStartGameCommandHandler(bot);
 }
