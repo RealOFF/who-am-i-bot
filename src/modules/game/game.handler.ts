@@ -21,7 +21,6 @@ export function createCreateGameCommandHandler(depsContainer: DepsContainer) {
 
       logger.info(`Link sent to user with id=${creatorId}`);
     } catch (error) {
-      console.log('error', error);
       logger.error('Error in handler', {
         context: UserCommands.CREATE_GAME,
         error,

@@ -35,18 +35,43 @@ export function createAttendGame({ db, logger }: DepsContainer) {
     const game = await db.session.findFirst({
       select: {
         id: true,
-        players: true,
+        players: {
+          where: { userId },
+        },
       },
       where: { password: gameCode },
     });
 
     if (!game) {
-      logger.error(`Game with code=${gameCode} is not found`, { context: 'attendGame' });
+      logger.error(`Game not found game${gameCode}`);
 
       return;
     }
 
-    if (game.players.some(player => player.userId === userId)) {
+    if (game.players.length > 0) {
+      logger.info(`Player with userId=${userId} already created in game=${gameCode}`);
+      const [player] = game.players;
+
+      await Promise.all([
+        db.player.updateMany({
+          where: {
+            id: {
+              not: player.id,
+            },
+            userId,
+          },
+          data: {
+            isActive: false,
+          },
+        }),
+        db.player.update({
+          where: { id: player.id },
+          data: {
+            isActive: true,
+          },
+        }),
+      ]);
+
       return;
     }
 
@@ -55,6 +80,7 @@ export function createAttendGame({ db, logger }: DepsContainer) {
         userId,
         sessionId: game.id,
         isCreator: false,
+        isActive: true,
       },
     });
   };
@@ -70,7 +96,7 @@ type StartGameParams = {
 
 export function createStartGame({ startRound, db, logger }: CreateStartGameParams) {
   return async ({ userId }: StartGameParams) => {
-    const player = await db.player.findFirst({ where: { userId } });
+    const player = await db.player.findFirst({ where: { userId, isActive: true } });
 
     if (!player) {
       logger.error(`Player with id=${userId} is not found`);
