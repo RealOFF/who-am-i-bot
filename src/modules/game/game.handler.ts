@@ -2,6 +2,7 @@ import { Config } from '../../config';
 import { createCreateGame, createStartGame, createStartRound } from './game.service';
 import { type DepsContainer, UserCommands } from '../../core';
 import { createGameSchema, startGameSchema } from './game.validator';
+import { GameErrors } from './game.errors';
 
 export function createCreateGameCommandHandler(depsContainer: DepsContainer) {
   const { bot, logger } = depsContainer;
@@ -45,6 +46,14 @@ export function createStartGameCommandHandler(depsContainer: DepsContainer) {
       logger.info('Start to start game');
       await startGame({ userId });
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === GameErrors.PLAYER_HAVE_NO_START_GAME_ACCESS_RIGHTS
+      ) {
+        ctx.reply('You have no start game access rights');
+
+        return;
+      }
       logger.error('Error in handler', {
         context: UserCommands.START_GAME,
         error,

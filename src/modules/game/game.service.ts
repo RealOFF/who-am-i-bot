@@ -1,4 +1,5 @@
 import { type DepsContainer } from '../../core';
+import { GameErrors } from './game.errors';
 
 type CreateGameParams = {
   creatorId: number;
@@ -82,7 +83,7 @@ export function createStartGame({ startRound, db, logger }: CreateStartGameParam
         context: 'startGame',
       });
 
-      return;
+      throw new Error(GameErrors.PLAYER_HAVE_NO_START_GAME_ACCESS_RIGHTS);
     }
 
     await startRound({ gameId: player.sessionId });
