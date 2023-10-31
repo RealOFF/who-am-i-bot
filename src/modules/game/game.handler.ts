@@ -1,14 +1,18 @@
 import { Config } from '../../config';
 import {
-  attendGame,
-  createGame,
+  createAttendGame,
+  createCreateGame,
   createStartGame,
   createStartRound,
 } from './game.service';
 import { type DepsContainer, UserCommands, SystemCommands } from '../../core';
 import { createGameSchema, attendGameSchema, startGameSchema } from './game.validator';
 
-export function createCreateGameCommandHandler({ bot, logger }: DepsContainer) {
+export function createCreateGameCommandHandler(depsContainer: DepsContainer) {
+  const { bot, logger } = depsContainer;
+
+  const createGame = createCreateGame(depsContainer);
+
   bot.command(UserCommands.CREATE_GAME, async ctx => {
     try {
       const { creatorId } = createGameSchema.parse({ creatorId: ctx.message.from?.id });
@@ -21,6 +25,7 @@ export function createCreateGameCommandHandler({ bot, logger }: DepsContainer) {
 
       logger.info(`Link sent to user with id=${creatorId}`);
     } catch (error) {
+      console.log('error', error);
       logger.error('Error in handler', {
         context: UserCommands.CREATE_GAME,
         error,
@@ -29,7 +34,11 @@ export function createCreateGameCommandHandler({ bot, logger }: DepsContainer) {
   });
 }
 
-export function createAttendGameCommandHandler({ bot, logger }: DepsContainer) {
+export function createAttendGameCommandHandler(depsContainer: DepsContainer) {
+  const { bot, logger } = depsContainer;
+
+  const attendGame = createAttendGame(depsContainer);
+
   bot.command(new RegExp(`/${SystemCommands.ATTEND_GAME}`), ctx => {
     try {
       console.log('ATTEND', ctx.payload);
@@ -51,11 +60,14 @@ export function createAttendGameCommandHandler({ bot, logger }: DepsContainer) {
   });
 }
 
-export function createStartGameCommandHandler({ bot, logger }: DepsContainer) {
+export function createStartGameCommandHandler(depsContainer: DepsContainer) {
+  const { bot, logger } = depsContainer;
+
   const startRound = createStartRound({
+    ...depsContainer,
     notifyUser: ({ userId }) => bot.telegram.sendMessage(userId, 'First round started'),
   });
-  const startGame = createStartGame({ startRound });
+  const startGame = createStartGame({ ...depsContainer, startRound });
 
   bot.command(UserCommands.START_GAME, async ctx => {
     try {

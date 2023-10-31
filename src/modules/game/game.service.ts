@@ -1,27 +1,27 @@
-import { db, logger } from '../../core';
+import { type DepsContainer } from '../../core';
 
 type CreateGameParams = {
   creatorId: number;
 };
 
-export async function createGame({
-  creatorId,
-}: CreateGameParams): Promise<{ password: string }> {
-  const session = await db.session.create({
-    data: {
-      players: {
-        create: [
-          {
-            userId: creatorId,
-            isCreator: true,
-          },
-        ],
+export function createCreateGame({ logger, db }: DepsContainer) {
+  return async ({ creatorId }: CreateGameParams): Promise<{ password: string }> => {
+    const session = await db.session.create({
+      data: {
+        players: {
+          create: [
+            {
+              userId: creatorId,
+              isCreator: true,
+            },
+          ],
+        },
       },
-    },
-  });
-  logger.info('Session created');
+    });
+    logger.info('Session created');
 
-  return session;
+    return session;
+  };
 }
 
 type AttendGameParams = {
@@ -29,43 +29,45 @@ type AttendGameParams = {
   gameCode: string;
 };
 
-export async function attendGame({ userId, gameCode }: AttendGameParams) {
-  const game = await db.session.findFirst({
-    select: {
-      id: true,
-      players: true,
-    },
-    where: { password: gameCode },
-  });
+export function createAttendGame({ db, logger }: DepsContainer) {
+  return async ({ userId, gameCode }: AttendGameParams) => {
+    const game = await db.session.findFirst({
+      select: {
+        id: true,
+        players: true,
+      },
+      where: { password: gameCode },
+    });
 
-  if (!game) {
-    logger.error(`Game with code=${gameCode} is not found`, { context: 'attendGame' });
+    if (!game) {
+      logger.error(`Game with code=${gameCode} is not found`, { context: 'attendGame' });
 
-    return;
-  }
+      return;
+    }
 
-  if (game.players.some(player => player.userId === userId)) {
-    return;
-  }
+    if (game.players.some(player => player.userId === userId)) {
+      return;
+    }
 
-  await db.player.create({
-    data: {
-      userId,
-      sessionId: game.id,
-      isCreator: false,
-    },
-  });
+    await db.player.create({
+      data: {
+        userId,
+        sessionId: game.id,
+        isCreator: false,
+      },
+    });
+  };
 }
 
 type CreateStartGameParams = {
   startRound: (params: { gameId: number }) => Promise<unknown>;
-};
+} & DepsContainer;
 
 type StartGameParams = {
   userId: number;
 };
 
-export function createStartGame({ startRound }: CreateStartGameParams) {
+export function createStartGame({ startRound, db, logger }: CreateStartGameParams) {
   return async ({ userId }: StartGameParams) => {
     const player = await db.player.findFirst({ where: { userId } });
 
@@ -91,13 +93,13 @@ export function createStartGame({ startRound }: CreateStartGameParams) {
 
 type CreateStartRoundParams = {
   notifyUser: (params: { userId: number }) => Promise<unknown>;
-};
+} & DepsContainer;
 
 type StartRoundParams = {
   gameId: number;
 };
 
-export function createStartRound({ notifyUser }: CreateStartRoundParams) {
+export function createStartRound({ notifyUser, db, logger }: CreateStartRoundParams) {
   return async ({ gameId }: StartRoundParams) => {
     const round = await db.round.create({ data: { sessionId: gameId } });
     logger.info(`Round created. Id=${round.id}`);
