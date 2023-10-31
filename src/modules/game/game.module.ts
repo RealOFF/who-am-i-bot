@@ -1,12 +1,16 @@
 import { type DepsContainer } from '../../core';
 import {
-  createAttendGameCommandHandler,
   createCreateGameCommandHandler,
   createStartGameCommandHandler,
 } from './game.handler';
+import { createAttendGame } from './game.service';
 
 export function createGameModule(depsContainer: DepsContainer) {
-  createAttendGameCommandHandler(depsContainer);
   createCreateGameCommandHandler(depsContainer);
   createStartGameCommandHandler(depsContainer);
+  const attendGame = createAttendGame(depsContainer);
+
+  return {
+    attendGame,
+  };
 }

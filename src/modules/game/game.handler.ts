@@ -1,12 +1,7 @@
 import { Config } from '../../config';
-import {
-  createAttendGame,
-  createCreateGame,
-  createStartGame,
-  createStartRound,
-} from './game.service';
-import { type DepsContainer, UserCommands, SystemCommands } from '../../core';
-import { createGameSchema, attendGameSchema, startGameSchema } from './game.validator';
+import { createCreateGame, createStartGame, createStartRound } from './game.service';
+import { type DepsContainer, UserCommands } from '../../core';
+import { createGameSchema, startGameSchema } from './game.validator';
 
 export function createCreateGameCommandHandler(depsContainer: DepsContainer) {
   const { bot, logger } = depsContainer;
@@ -28,32 +23,6 @@ export function createCreateGameCommandHandler(depsContainer: DepsContainer) {
       console.log('error', error);
       logger.error('Error in handler', {
         context: UserCommands.CREATE_GAME,
-        error,
-      });
-    }
-  });
-}
-
-export function createAttendGameCommandHandler(depsContainer: DepsContainer) {
-  const { bot, logger } = depsContainer;
-
-  const attendGame = createAttendGame(depsContainer);
-
-  bot.command(new RegExp(`/${SystemCommands.ATTEND_GAME}`), ctx => {
-    try {
-      console.log('ATTEND', ctx.payload);
-      const { userId, gameCode } = attendGameSchema.parse({
-        userId: ctx.message.from?.id,
-        gameCode: '', //match && match[1],
-      });
-
-      attendGame({
-        userId,
-        gameCode,
-      });
-    } catch (error) {
-      logger.error('Error in handler', {
-        context: SystemCommands.ATTEND_GAME,
         error,
       });
     }

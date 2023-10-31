@@ -6,8 +6,7 @@ export enum UserCommands {
 }
 
 export enum SystemCommands {
-  START = 'start\\b',
-  ATTEND_GAME = 'start (.+)',
+  START = 'start',
 }
 
 export const USER_COMMANDS_CONFIG: BotCommand[] = [

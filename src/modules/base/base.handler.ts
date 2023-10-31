@@ -1,7 +1,39 @@
 import { type DepsContainer, SystemCommands } from '../../core';
+import { attendGameSchema } from './base.validator';
 
-export function createStartCommandHandler({ bot }: DepsContainer) {
+type CreateStartGameParams = {
+  attendGame: (params: { userId: number; gameCode: string }) => Promise<unknown>;
+} & DepsContainer;
+
+export function createStartCommandHandler({
+  bot,
+  logger,
+  attendGame,
+}: CreateStartGameParams) {
   bot.command(SystemCommands.START, async ctx => {
+    if (ctx.payload) {
+      try {
+        const { userId, gameCode } = attendGameSchema.parse({
+          userId: ctx.message.from?.id,
+          gameCode: ctx.payload,
+        });
+
+        await attendGame({
+          userId,
+          gameCode,
+        });
+
+        ctx.reply(`You attended to ${ctx.payload} room.`);
+
+        return;
+      } catch (error) {
+        logger.error('Error in handler', {
+          context: SystemCommands.START,
+          error,
+        });
+      }
+    }
+
     ctx.reply('Hello. Chat started.');
   });
 }

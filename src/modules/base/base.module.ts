@@ -1,8 +1,7 @@
 import { type DepsContainer } from '../../core';
 import { createGameModule } from '../game';
 import { createAuthHandler } from '../auth';
-
-const moduleCreators = [createGameModule, createAuthHandler];
+import { createStartCommandHandler } from './base.handler';
 
 export function createBaseModule(depsContainer: DepsContainer) {
   const { logger, bot } = depsContainer;
@@ -14,7 +13,12 @@ export function createBaseModule(depsContainer: DepsContainer) {
     logger.info(`Processing end updateId=${ctx.update.update_id}`);
   });
 
-  moduleCreators.forEach(createModule => createModule(depsContainer));
+  createAuthHandler(depsContainer);
+  const { attendGame } = createGameModule(depsContainer);
+  createStartCommandHandler({
+    ...depsContainer,
+    attendGame,
+  });
 
   bot.launch();
 
