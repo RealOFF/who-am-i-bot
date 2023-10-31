@@ -1,10 +1,10 @@
-import type { BotCommand } from 'node-telegram-bot-api';
+import { type BotCommand } from '@telegraf/types';
 
 export enum BotCommands {
-  START = '^/start\\b',
-  ATTEND_GAME = '/start (.+)',
-  CREATE_GAME = '/create_game',
-  START_GAME = '/start_game',
+  START = 'start\\b',
+  ATTEND_GAME = 'start (.+)',
+  CREATE_GAME = 'create_game',
+  START_GAME = 'start_game',
 }
 
 export const COMMANDS_CONFIG: BotCommand[] = [

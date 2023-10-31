@@ -1,5 +1,4 @@
-import { type Message } from 'node-telegram-bot-api';
-import type TelegramBot from 'node-telegram-bot-api';
+import { type Telegraf } from 'telegraf';
 import { getCommands } from './bot-commands.service';
 import { BotCommands } from './bot-commands.config';
 import { startSchema } from './bot-commands.validator';
@@ -10,19 +9,17 @@ import {
   createStartGameCommandHandler,
 } from '../../game';
 
-function createStartCommandHandler(bot: TelegramBot) {
-  bot.onText(new RegExp(BotCommands.START), async (message: Message) => {
+function createStartCommandHandler(bot: Telegraf) {
+  bot.command(BotCommands.START, async ctx => {
     try {
       const data = startSchema.parse({
-        id: message.from?.id,
-        username: message.from?.username,
-        language: message.from?.language_code,
+        id: ctx.message.from?.id,
+        username: ctx.message.from?.username,
+        language: ctx.message.from?.language_code,
       });
-      const chatId = message.chat.id;
 
       await db.user.create({ data });
-
-      bot.sendMessage(chatId, 'Hello. Chat started.');
+      ctx.reply('Hello. Chat started.');
     } catch (error) {
       logger.error('Error in handler', {
         context: BotCommands.START,
@@ -32,8 +29,8 @@ function createStartCommandHandler(bot: TelegramBot) {
   });
 }
 
-export function createBotCommandsController(bot: TelegramBot) {
-  bot.setMyCommands(getCommands());
+export function createBotCommandsController(bot: Telegraf) {
+  bot.telegram.setMyCommands(getCommands());
 
   createStartCommandHandler(bot);
   createCreateGameCommandHandler(bot);

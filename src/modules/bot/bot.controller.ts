@@ -1,23 +1,26 @@
-import TelegramBot from 'node-telegram-bot-api';
+import { Telegraf } from 'telegraf';
 import { logger } from '../../core';
 import { Config } from '../../config';
 import { createBotCommandsController } from '../commands/bot-commands';
 
 export function createBotController() {
-  const bot = new TelegramBot(Config.BOT_TOKEN, { polling: true });
+  const bot = new Telegraf(Config.BOT_TOKEN);
 
-  bot.on('message', message => {
-    logger.info('Message recived', message);
-  });
-
-  bot.on('polling_error', error => {
-    logger.error(error);
+  bot.use(async (ctx, next) => {
+    logger.info(`Processing start updateId=${ctx.update.update_id}`);
+    await next(); // runs next middleware
+    // runs after next middleware finishes
+    logger.info(`Processing end updateId=${ctx.update.update_id}`);
   });
 
   createBotCommandsController(bot);
 
-  return () => {
-    bot.stopPolling();
+  bot.launch();
+
+  logger.info('Bot started');
+
+  return (message: string) => {
+    bot.stop(message);
     logger.info('Bot has stopped.');
   };
 }
