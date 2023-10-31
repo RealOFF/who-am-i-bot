@@ -1,10 +1,11 @@
-import { Telegraf } from 'telegraf';
-import { logger } from '../../core';
-import { Config } from '../../config';
-import { createBotCommandsController } from '../commands/bot-commands';
+import { type DepsContainer } from '../../core';
+import { createGameModule } from '../game';
+import { createAuthHandler } from '../auth';
 
-export function createBotController() {
-  const bot = new Telegraf(Config.BOT_TOKEN);
+const moduleCreators = [createGameModule, createAuthHandler];
+
+export function createBaseModule(depsContainer: DepsContainer) {
+  const { logger, bot } = depsContainer;
 
   bot.use(async (ctx, next) => {
     logger.info(`Processing start updateId=${ctx.update.update_id}`);
@@ -13,7 +14,7 @@ export function createBotController() {
     logger.info(`Processing end updateId=${ctx.update.update_id}`);
   });
 
-  createBotCommandsController(bot);
+  moduleCreators.forEach(createModule => createModule(depsContainer));
 
   bot.launch();
 

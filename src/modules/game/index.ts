@@ -1,1 +1,1 @@
-export * from './game.handler';
+export * from './game.module';

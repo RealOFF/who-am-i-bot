@@ -1,2 +1,2 @@
-export * from './db.service';
-export * from './logger.service';
+export * from './deps.container';
+export * from './commands.config';

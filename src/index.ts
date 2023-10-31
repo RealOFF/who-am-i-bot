@@ -1,6 +1,7 @@
-import { createBotController } from './modules/bot';
+import { createBaseModule } from './modules/base';
+import { depsContainer } from './core';
 
-const destroy = createBotController();
+const destroy = createBaseModule(depsContainer);
 
 process.once('SIGINT', () => destroy('SIGINT'));
 process.once('SIGTERM', () => destroy('SIGTERM'));
