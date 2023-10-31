@@ -30,7 +30,7 @@ export function createCreateGameCommandHandler({ bot, logger }: DepsContainer) {
 }
 
 export function createAttendGameCommandHandler({ bot, logger }: DepsContainer) {
-  bot.command(new RegExp(`/${SystemCommands.ATTEND_GAME}`), ctx => {
+  bot.command(SystemCommands.START, ctx => {
     try {
       console.log('ATTEND', ctx.payload);
       const { userId, gameCode } = attendGameSchema.parse({
