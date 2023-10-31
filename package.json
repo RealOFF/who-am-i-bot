@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "cross-env NODE_ENV=production node dist/src/index.js",
-    "dev": "nodemon src/index.ts",
+    "dev": "nodemon -r dotenv/config src/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "ts:check": "tsc -b",

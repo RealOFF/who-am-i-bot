@@ -1,1 +1,1 @@
-export * from './bot.controller';
+export * from './base.module';
