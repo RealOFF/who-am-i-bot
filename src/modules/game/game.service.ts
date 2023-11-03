@@ -35,9 +35,7 @@ export function createAttendGame({ db, logger }: DepsContainer) {
     const game = await db.session.findFirst({
       select: {
         id: true,
-        players: {
-          where: { userId },
-        },
+        players: { where: { userId } },
       },
       where: { password: gameCode },
     });
@@ -55,20 +53,14 @@ export function createAttendGame({ db, logger }: DepsContainer) {
       await Promise.all([
         db.player.updateMany({
           where: {
-            id: {
-              not: player.id,
-            },
+            id: { not: player.id },
             userId,
           },
-          data: {
-            isActive: false,
-          },
+          data: { isActive: false },
         }),
         db.player.update({
           where: { id: player.id },
-          data: {
-            isActive: true,
-          },
+          data: { isActive: true },
         }),
       ]);
 
@@ -96,7 +88,12 @@ type StartGameParams = {
 
 export function createStartGame({ startRound, db, logger }: CreateStartGameParams) {
   return async ({ userId }: StartGameParams) => {
-    const player = await db.player.findFirst({ where: { userId, isActive: true } });
+    const player = await db.player.findFirst({
+      where: {
+        userId,
+        isActive: true,
+      },
+    });
 
     if (!player) {
       logger.error(`Player with id=${userId} is not found`);
@@ -119,20 +116,36 @@ export function createStartGame({ startRound, db, logger }: CreateStartGameParam
 }
 
 type CreateStartRoundParams = {
-  notifyUser: (params: { userId: number }) => Promise<unknown>;
+  notifyUserRoundStarted: (params: { userId: number }) => Promise<unknown>;
+  notifyUserNeedToCreateRole: (params: {
+    userId: number;
+    roleName: string;
+  }) => Promise<unknown>;
+  notifyNotEnoughUsers: (params: { userId: number }) => Promise<unknown>;
 } & DepsContainer;
 
 type StartRoundParams = {
   gameId: number;
 };
 
-export function createStartRound({ notifyUser, db, logger }: CreateStartRoundParams) {
+const MIN_PLAYERS = 2;
+
+export function createStartRound(depsContainer: CreateStartRoundParams) {
+  const {
+    notifyUserRoundStarted,
+    notifyUserNeedToCreateRole,
+    notifyNotEnoughUsers,
+    db,
+    logger,
+  } = depsContainer;
+  const createPlayersPairs = createCreatePlayersPairs(depsContainer);
+
   return async ({ gameId }: StartRoundParams) => {
     const round = await db.round.create({ data: { sessionId: gameId } });
     logger.info(`Round created. Id=${round.id}`);
     const game = await db.session.findUnique({
       where: { id: gameId },
-      include: { players: true },
+      include: { players: { include: { user: true } } },
     });
 
     if (!game) {
@@ -141,6 +154,64 @@ export function createStartRound({ notifyUser, db, logger }: CreateStartRoundPar
       return;
     }
 
-    await Promise.all(game.players.map(({ userId }) => notifyUser({ userId })));
+    if (game.players.length < MIN_PLAYERS) {
+      logger.warn('Not enough users to start game');
+
+      if (game.players.length === 1) {
+        notifyNotEnoughUsers({ userId: game.players[0].userId });
+      }
+    }
+
+    await Promise.all(
+      game.players.map(({ userId }) => notifyUserRoundStarted({ userId }))
+    );
+
+    const playersPairs = await createPlayersPairs({ players: game.players });
+
+    await Promise.all(
+      playersPairs.map(player =>
+        notifyUserNeedToCreateRole({
+          userId: player.from.userId,
+          roleName: player.to.user.username,
+        })
+      )
+    );
+  };
+}
+
+type Pair<T> = {
+  from: T;
+  to: T;
+};
+
+function createRandomPairs<T>(array: T[]) {
+  let toArray = array;
+
+  return array.reduce<Pair<T>[]>((result, item) => {
+    const preparedToArray = toArray.filter(el => el !== item);
+    const randomIndex = Math.floor(Math.random() * preparedToArray.length);
+
+    result.push({
+      from: item,
+      to: preparedToArray[randomIndex],
+    });
+
+    toArray = toArray.filter(item => item !== preparedToArray[randomIndex]);
+
+    return result;
+  }, []);
+}
+
+type CreatePlayersPairsParams<T> = {
+  players: T[];
+};
+
+function createCreatePlayersPairs({ logger }: DepsContainer) {
+  return async <T>({ players }: CreatePlayersPairsParams<T>) => {
+    const randomPairs = createRandomPairs(players);
+
+    logger.info('Pairs created', { pairs: randomPairs });
+
+    return randomPairs;
   };
 }

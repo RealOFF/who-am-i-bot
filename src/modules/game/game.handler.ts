@@ -34,9 +34,23 @@ export function createStartGameCommandHandler(depsContainer: DepsContainer) {
 
   const startRound = createStartRound({
     ...depsContainer,
-    notifyUser: ({ userId }) => bot.telegram.sendMessage(userId, 'First round started'),
+    notifyUserRoundStarted: ({ userId }) =>
+      bot.telegram.sendMessage(userId, 'First round started'),
+    notifyNotEnoughUsers: ({ userId }) =>
+      bot.telegram.sendMessage(
+        userId,
+        'Not enough users to start game. It should be minimum 2 users.'
+      ),
+    notifyUserNeedToCreateRole: ({ userId, roleName }) =>
+      bot.telegram.sendMessage(
+        userId,
+        `Create a role for a user with a nickname: ${roleName}`
+      ),
   });
-  const startGame = createStartGame({ ...depsContainer, startRound });
+  const startGame = createStartGame({
+    ...depsContainer,
+    startRound,
+  });
 
   bot.command(UserCommands.START_GAME, async ctx => {
     try {
