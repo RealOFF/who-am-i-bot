@@ -46,7 +46,7 @@ model Round {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   session   Session  @relation(fields: [sessionId], references: [id])
-  sessionId Int      @unique
+  sessionId Int
   roles     Role[]
   isActive  Boolean @default(true)
 }
