@@ -32,6 +32,20 @@ export function createCreateGameCommandHandler(depsContainer: DepsContainer) {
   });
 }
 
+const START_GAME_ERROR_HANDLERS = {
+  [GameErrors.FIRST_ROUND_ALREADY_CREATED]: 'First round already created.',
+  [GameErrors.GAME_IS_NOT_FOUND]: 'Game with provided id is not found.',
+  [GameErrors.NOT_ENOUGH_USERS_TO_START_GAME]:
+    'Not enough users to start game. It should be minimum 2 users.',
+  [GameErrors.PLAYER_HAVE_NO_START_GAME_ACCESS_RIGHTS]:
+    'You have no start game access rights',
+};
+
+const isHasStartGameErrorHandler = (
+  message: string
+): message is keyof typeof START_GAME_ERROR_HANDLERS =>
+  message in START_GAME_ERROR_HANDLERS;
+
 export function createStartGameCommandHandler(depsContainer: DepsContainer) {
   const { bot, logger: baseLogger } = depsContainer;
   const logger = baseLogger.child({ context: 'createStartGameCommandHandler' });
@@ -39,16 +53,11 @@ export function createStartGameCommandHandler(depsContainer: DepsContainer) {
   const startRound = createStartRound({
     ...depsContainer,
     notifyUserRoundStarted: ({ userId }) =>
-      bot.telegram.sendMessage(userId, 'First round started'),
-    notifyNotEnoughUsers: ({ userId }) =>
-      bot.telegram.sendMessage(
-        userId,
-        'Not enough users to start game. It should be minimum 2 users.'
-      ),
+      bot.telegram.sendMessage(userId, 'First round started.'),
     notifyUserNeedToCreateRole: ({ userId, roleName }) =>
       bot.telegram.sendMessage(
         userId,
-        `Create a role for a user with a nickname: ${roleName}`
+        `Create a role for a user with a nickname: ${roleName}.`
       ),
   });
   const startGame = createStartGame({
@@ -63,11 +72,8 @@ export function createStartGameCommandHandler(depsContainer: DepsContainer) {
       logger.info('Start to start game');
       await startGame({ userId });
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === GameErrors.PLAYER_HAVE_NO_START_GAME_ACCESS_RIGHTS
-      ) {
-        ctx.reply('You have no start game access rights');
+      if (error instanceof Error && isHasStartGameErrorHandler(error.message)) {
+        ctx.reply(START_GAME_ERROR_HANDLERS[error.message]);
 
         return;
       }

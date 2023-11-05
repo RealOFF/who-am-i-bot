@@ -129,7 +129,6 @@ type CreateStartRoundParams = {
     userId: number;
     roleName: string;
   }) => Promise<unknown>;
-  notifyNotEnoughUsers: (params: { userId: number }) => Promise<unknown>;
 } & DepsContainer;
 
 type StartRoundParams = {
@@ -142,7 +141,6 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
   const {
     notifyUserRoundStarted,
     notifyUserNeedToCreateRole,
-    notifyNotEnoughUsers,
     db,
     logger: baseLogger,
   } = depsContainer;
@@ -150,25 +148,31 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
   const logger = baseLogger.child({ context: 'createStartRound' });
 
   return async ({ gameId }: StartRoundParams) => {
-    const round = await db.round.create({ data: { sessionId: gameId } });
-    logger.info(`Round created. Id=${round.id}`);
-
     const game = await db.session.findUnique({
       where: { id: gameId },
-      include: { players: { include: { user: true } } },
+      include: { players: { include: { user: true } }, rounds: true },
     });
+
+    if (game && game.rounds.length > 0) {
+      logger.warn('First round already created');
+
+      throw new Error(GameErrors.FIRST_ROUND_ALREADY_CREATED);
+    }
+
+    const round = await db.round.create({ data: { sessionId: gameId } });
+    logger.info(`Round created. Id=${round.id}`);
 
     if (!game) {
       logger.error(`Game with id=${gameId} is not found`);
 
-      return;
+      throw new Error(GameErrors.GAME_IS_NOT_FOUND);
     }
 
     if (game.players.length < MIN_PLAYERS) {
       logger.warn('Not enough users to start game');
 
       if (game.players.length === 1) {
-        notifyNotEnoughUsers({ userId: game.players[0].userId });
+        throw new Error(GameErrors.NOT_ENOUGH_USERS_TO_START_GAME);
       }
     }
 
