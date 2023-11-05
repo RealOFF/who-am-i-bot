@@ -26,6 +26,6 @@ export function createBaseModule(depsContainer: DepsContainer) {
 
   return (message: string) => {
     bot.stop(message);
-    logger.info('Bot has stopped.');
+    logger.info('Bot has stopped');
   };
 }

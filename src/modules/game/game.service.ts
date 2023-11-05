@@ -41,13 +41,15 @@ export function createAttendGame({ db, logger }: DepsContainer) {
     });
 
     if (!game) {
-      logger.error(`Game not found game${gameCode}`);
+      logger.error(`Game not found game${gameCode}`, { context: 'createAttendGame' });
 
       return;
     }
 
     if (game.players.length > 0) {
-      logger.info(`Player with userId=${userId} already created in game=${gameCode}`);
+      logger.info(`Player with userId=${userId} already created in game=${gameCode}`, {
+        context: 'createAttendGame',
+      });
       const [player] = game.players;
 
       await Promise.all([
@@ -96,14 +98,16 @@ export function createStartGame({ startRound, db, logger }: CreateStartGameParam
     });
 
     if (!player) {
-      logger.error(`Player with id=${userId} is not found`);
+      logger.error(`Player with id=${userId} is not found`, {
+        context: 'createStartGame',
+      });
 
       return;
     }
 
     if (!player.isCreator) {
       logger.error(`Player with id=${userId} is not creator and can not start game`, {
-        context: 'startGame',
+        context: 'createStartGame',
       });
 
       throw new Error(GameErrors.PLAYER_HAVE_NO_START_GAME_ACCESS_RIGHTS);
@@ -142,20 +146,22 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
 
   return async ({ gameId }: StartRoundParams) => {
     const round = await db.round.create({ data: { sessionId: gameId } });
-    logger.info(`Round created. Id=${round.id}`);
+    logger.info(`Round created. Id=${round.id}`, { context: 'createStartRound' });
     const game = await db.session.findUnique({
       where: { id: gameId },
       include: { players: { include: { user: true } } },
     });
 
     if (!game) {
-      logger.error(`Game with id=${gameId} is not found`, { context: 'startRound' });
+      logger.error(`Game with id=${gameId} is not found`, {
+        context: 'createStartRound',
+      });
 
       return;
     }
 
     if (game.players.length < MIN_PLAYERS) {
-      logger.warn('Not enough users to start game');
+      logger.warn('Not enough users to start game', { context: 'createStartRound' });
 
       if (game.players.length === 1) {
         notifyNotEnoughUsers({ userId: game.players[0].userId });
@@ -210,7 +216,10 @@ function createCreatePlayersPairs({ logger }: DepsContainer) {
   return async <T>({ players }: CreatePlayersPairsParams<T>) => {
     const randomPairs = createRandomPairs(players);
 
-    logger.info('Pairs created', { pairs: randomPairs });
+    logger.info('Pairs created', {
+      pairs: randomPairs,
+      context: 'createCreatePlayersPairs',
+    });
 
     return randomPairs;
   };
