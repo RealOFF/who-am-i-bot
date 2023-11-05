@@ -1,9 +1,10 @@
 import { Telegraf, session } from 'telegraf';
-import { logger } from './logger.service';
+import { logger as baseLogger } from './logger.service';
 import { Config } from '../config';
 
 export function createBotInstance() {
   const bot = new Telegraf(Config.BOT_TOKEN);
+  const logger = baseLogger.child({ context: 'createBotInstance' });
 
   bot.use(async (ctx, next) => {
     logger.info(`Processing start updateId=${ctx.update.update_id}`);

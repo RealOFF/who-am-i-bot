@@ -5,7 +5,9 @@ type CreateGameParams = {
   creatorId: number;
 };
 
-export function createCreateGame({ logger, db }: DepsContainer) {
+export function createCreateGame({ logger: baseLogger, db }: DepsContainer) {
+  const logger = baseLogger.child({ context: 'createCreateGame' });
+
   return async ({ creatorId }: CreateGameParams): Promise<{ password: string }> => {
     const session = await db.session.create({
       data: {
@@ -30,7 +32,9 @@ type AttendGameParams = {
   gameCode: string;
 };
 
-export function createAttendGame({ db, logger }: DepsContainer) {
+export function createAttendGame({ db, logger: baseLogger }: DepsContainer) {
+  const logger = baseLogger.child({ context: 'createAttendGame' });
+
   return async ({ userId, gameCode }: AttendGameParams) => {
     const game = await db.session.findFirst({
       select: {
@@ -41,15 +45,13 @@ export function createAttendGame({ db, logger }: DepsContainer) {
     });
 
     if (!game) {
-      logger.error(`Game not found game${gameCode}`, { context: 'createAttendGame' });
+      logger.error(`Game not found game${gameCode}`);
 
       return;
     }
 
     if (game.players.length > 0) {
-      logger.info(`Player with userId=${userId} already created in game=${gameCode}`, {
-        context: 'createAttendGame',
-      });
+      logger.info(`Player with userId=${userId} already created in game=${gameCode}`);
       const [player] = game.players;
 
       await Promise.all([
@@ -88,7 +90,13 @@ type StartGameParams = {
   userId: number;
 };
 
-export function createStartGame({ startRound, db, logger }: CreateStartGameParams) {
+export function createStartGame({
+  startRound,
+  db,
+  logger: baseLogger,
+}: CreateStartGameParams) {
+  const logger = baseLogger.child({ context: 'createStartGame' });
+
   return async ({ userId }: StartGameParams) => {
     const player = await db.player.findFirst({
       where: {
@@ -98,17 +106,13 @@ export function createStartGame({ startRound, db, logger }: CreateStartGameParam
     });
 
     if (!player) {
-      logger.error(`Player with id=${userId} is not found`, {
-        context: 'createStartGame',
-      });
+      logger.error(`Player with id=${userId} is not found`);
 
       return;
     }
 
     if (!player.isCreator) {
-      logger.error(`Player with id=${userId} is not creator and can not start game`, {
-        context: 'createStartGame',
-      });
+      logger.error(`Player with id=${userId} is not creator and can not start game`);
 
       throw new Error(GameErrors.PLAYER_HAVE_NO_START_GAME_ACCESS_RIGHTS);
     }
@@ -140,28 +144,28 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
     notifyUserNeedToCreateRole,
     notifyNotEnoughUsers,
     db,
-    logger,
+    logger: baseLogger,
   } = depsContainer;
   const createPlayersPairs = createCreatePlayersPairs(depsContainer);
+  const logger = baseLogger.child({ context: 'createStartRound' });
 
   return async ({ gameId }: StartRoundParams) => {
     const round = await db.round.create({ data: { sessionId: gameId } });
-    logger.info(`Round created. Id=${round.id}`, { context: 'createStartRound' });
+    logger.info(`Round created. Id=${round.id}`);
+
     const game = await db.session.findUnique({
       where: { id: gameId },
       include: { players: { include: { user: true } } },
     });
 
     if (!game) {
-      logger.error(`Game with id=${gameId} is not found`, {
-        context: 'createStartRound',
-      });
+      logger.error(`Game with id=${gameId} is not found`);
 
       return;
     }
 
     if (game.players.length < MIN_PLAYERS) {
-      logger.warn('Not enough users to start game', { context: 'createStartRound' });
+      logger.warn('Not enough users to start game');
 
       if (game.players.length === 1) {
         notifyNotEnoughUsers({ userId: game.players[0].userId });
@@ -212,14 +216,18 @@ type CreatePlayersPairsParams<T> = {
   players: T[];
 };
 
-function createCreatePlayersPairs({ logger }: DepsContainer) {
+function createCreatePlayersPairs({ logger: baseLogger }: DepsContainer) {
+  const logger = baseLogger.child({ context: 'createCreatePlayersPairs' });
+
   return async <T>({ players }: CreatePlayersPairsParams<T>) => {
     const randomPairs = createRandomPairs(players);
 
-    logger.info('Pairs created', {
-      pairs: randomPairs,
-      context: 'createCreatePlayersPairs',
-    });
+    logger.info(
+      {
+        pairs: randomPairs,
+      },
+      'Pairs created'
+    );
 
     return randomPairs;
   };

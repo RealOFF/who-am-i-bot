@@ -7,9 +7,11 @@ type CreateStartGameParams = {
 
 export function createStartCommandHandler({
   bot,
-  logger,
+  logger: baseLogger,
   attendGame,
 }: CreateStartGameParams) {
+  const logger = baseLogger.child({ context: 'createStartCommandHandler' });
+
   bot.command(SystemCommands.START, async ctx => {
     if (ctx.payload) {
       try {
@@ -27,10 +29,12 @@ export function createStartCommandHandler({
 
         return;
       } catch (error) {
-        logger.error('Error in handler', {
-          context: SystemCommands.START,
-          error,
-        });
+        logger.error(
+          {
+            error,
+          },
+          'Error in handler'
+        );
       }
     }
 

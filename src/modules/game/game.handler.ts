@@ -5,7 +5,8 @@ import { createGameSchema, startGameSchema } from './game.validator';
 import { GameErrors } from './game.errors';
 
 export function createCreateGameCommandHandler(depsContainer: DepsContainer) {
-  const { bot, logger } = depsContainer;
+  const { bot, logger: baseLogger } = depsContainer;
+  const logger = baseLogger.child({ context: 'createCreateGameCommandHandler' });
 
   const createGame = createCreateGame(depsContainer);
 
@@ -21,16 +22,19 @@ export function createCreateGameCommandHandler(depsContainer: DepsContainer) {
 
       logger.info(`Link sent to user with id=${creatorId}`);
     } catch (error) {
-      logger.error('Error in handler', {
-        context: UserCommands.CREATE_GAME,
-        error,
-      });
+      logger.error(
+        {
+          error,
+        },
+        'Error in handler'
+      );
     }
   });
 }
 
 export function createStartGameCommandHandler(depsContainer: DepsContainer) {
-  const { bot, logger } = depsContainer;
+  const { bot, logger: baseLogger } = depsContainer;
+  const logger = baseLogger.child({ context: 'createStartGameCommandHandler' });
 
   const startRound = createStartRound({
     ...depsContainer,
@@ -67,10 +71,12 @@ export function createStartGameCommandHandler(depsContainer: DepsContainer) {
 
         return;
       }
-      logger.error('Error in handler', {
-        context: UserCommands.START_GAME,
-        error,
-      });
+      logger.error(
+        {
+          error,
+        },
+        'Error in handler'
+      );
     }
   });
 }
