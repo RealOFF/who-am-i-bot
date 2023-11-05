@@ -1,10 +1,10 @@
-import pino from 'pino';
+import pino, { type Logger as PinoLogger } from 'pino';
 
 export const logger = pino({
   transport: {
     target: 'pino-pretty',
-    options: {
-      colorize: true,
-    },
+    options: { colorize: true },
   },
 });
+
+export type Logger = PinoLogger;

@@ -1,7 +1,7 @@
 import { createBaseModule } from './modules/base';
-import { depsContainer } from './core';
+import { depsContainer, depsCleanup } from './core';
 
-const destroy = createBaseModule(depsContainer);
+createBaseModule(depsContainer);
 
-process.once('SIGINT', () => destroy('SIGINT'));
-process.once('SIGTERM', () => destroy('SIGTERM'));
+process.once('SIGINT', () => depsCleanup('SIGINT'));
+process.once('SIGTERM', () => depsCleanup('SIGTERM'));
