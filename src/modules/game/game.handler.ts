@@ -3,6 +3,7 @@ import { createCreateGame, createStartGame, createStartRound } from './game.serv
 import { type DepsContainer, UserCommands } from '../../core';
 import { createGameSchema, startGameSchema } from './game.validator';
 import { GameErrors } from './game.errors';
+import { TextRequestType } from '../../domain';
 
 export function createCreateGameCommandHandler(depsContainer: DepsContainer) {
   const { bot, logger: baseLogger } = depsContainer;
@@ -83,6 +84,32 @@ export function createStartGameCommandHandler(depsContainer: DepsContainer) {
         },
         'Error in handler'
       );
+    }
+  });
+}
+
+export function createSetupRoleHandler(depsContainer: DepsContainer) {
+  const { bot, logger: baseLogger, db } = depsContainer;
+  const logger = baseLogger.child({ context: 'createSetupRoleHandler' });
+
+  bot.hears(/.*/, async ctx => {
+    logger.info(`Text message recieved: ${ctx.match.input}`);
+
+    const user = await db.user.findUnique({ where: { id: ctx.message.from.id } });
+
+    if (!user) {
+      logger.error(`User with id=${ctx.message.from.id} is not found`);
+      return;
+    }
+    if (user.activeTextRequestType === TextRequestType.SETUP_ROLE_NAME) {
+      db.role.update({
+        where: {
+          assignedToId: user.id,
+        },
+        data: {
+          title: ctx.message.text,
+        },
+      });
     }
   });
 }

@@ -1,5 +1,6 @@
 import { type DepsContainer } from '../../core';
 import { GameErrors } from './game.errors';
+import { TextRequestType } from '../../domain';
 
 type CreateGameParams = {
   creatorId: number;
@@ -150,7 +151,10 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
   return async ({ gameId }: StartRoundParams) => {
     const game = await db.session.findUnique({
       where: { id: gameId },
-      include: { players: { include: { user: true } }, rounds: true },
+      include: {
+        players: { include: { user: true } },
+        rounds: true,
+      },
     });
 
     if (game && game.rounds.length > 0) {
@@ -180,15 +184,38 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
       game.players.map(({ userId }) => notifyUserRoundStarted({ userId }))
     );
 
-    const playersPairs = await createPlayersPairs({ players: game.players });
+    const playersPairs = createPlayersPairs({ players: game.players });
 
-    await Promise.all(
-      playersPairs.map(player =>
-        notifyUserNeedToCreateRole({
-          userId: player.from.userId,
-          roleName: player.to.user.username,
-        })
-      )
+    await db.user.updateMany({
+      data: { activeTextRequestType: TextRequestType.SETUP_ROLE_NAME },
+    });
+    const activeRound = await db.round.findFirst({
+      where: {
+        sessionId: gameId,
+        isActive: true,
+      },
+    });
+
+    if (!activeRound) {
+      logger.error(`Active round with gameId=${gameId} is not found.`);
+
+      return;
+    }
+
+    await db.role.createMany({
+      data: playersPairs.map(({ from, to }) => ({
+        title: '',
+        roundId: activeRound.id,
+        assignedToId: to.id,
+        createdById: from.id,
+      })),
+    });
+
+    playersPairs.forEach(({ from, to }) =>
+      notifyUserNeedToCreateRole({
+        userId: from.userId,
+        roleName: to.user.username,
+      })
     );
   };
 }
@@ -223,15 +250,10 @@ type CreatePlayersPairsParams<T> = {
 function createCreatePlayersPairs({ logger: baseLogger }: DepsContainer) {
   const logger = baseLogger.child({ context: 'createCreatePlayersPairs' });
 
-  return async <T>({ players }: CreatePlayersPairsParams<T>) => {
+  return <T>({ players }: CreatePlayersPairsParams<T>) => {
     const randomPairs = createRandomPairs(players);
 
-    logger.info(
-      {
-        pairs: randomPairs,
-      },
-      'Pairs created'
-    );
+    logger.info({ pairs: randomPairs }, 'Pairs created');
 
     return randomPairs;
   };
