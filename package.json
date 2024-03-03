@@ -32,11 +32,10 @@
   },
   "homepage": "https://github.com/RealOFF/who-am-i-bot#readme",
   "dependencies": {
-    "@prisma/client": "5.5.0",
+    "@prisma/client": "5.10.2",
     "@telegraf/types": "^6.9.1",
     "pino": "^8.16.1",
     "pino-pretty": "^10.2.3",
-    "prisma": "^5.5.0",
     "telegraf": "^4.15.0",
     "zod": "^3.22.4"
   },
@@ -52,6 +51,7 @@
     "eslint-plugin-unused-imports": "^3.0.0",
     "nodemon": "^3.0.1",
     "prettier": "^3.0.3",
+    "prisma": "^5.10.2",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2",
     "vite-tsconfig-paths": "^4.2.1",
