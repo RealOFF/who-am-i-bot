@@ -1,5 +1,5 @@
 import { type DepsContainer } from '../../core';
-import { GameErrors } from './game.errors';
+import { GameErrors, RoundErrors } from './game.errors';
 import { TextRequestType } from '../../domain';
 
 type CreateGameParams = {
@@ -125,7 +125,10 @@ export function createStartGame({
 }
 
 type CreateStartRoundParams = {
-  notifyUserRoundStarted: (params: { userId: number }) => Promise<unknown>;
+  notifyUserRoundStarted: (params: {
+    userId: number;
+    roundIndex: number;
+  }) => Promise<unknown>;
   notifyUserNeedToCreateRole: (params: {
     userId: number;
     roleName: string;
@@ -134,6 +137,7 @@ type CreateStartRoundParams = {
 
 type StartRoundParams = {
   gameId: number;
+  roundIndex?: number;
 };
 
 const MIN_PLAYERS = 2;
@@ -148,7 +152,7 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
   const createPlayersPairs = createCreatePlayersPairs(depsContainer);
   const logger = baseLogger.child({ context: 'createStartRound' });
 
-  return async ({ gameId }: StartRoundParams) => {
+  return async ({ gameId, roundIndex = 0 }: StartRoundParams) => {
     const game = await db.session.findUnique({
       where: { id: gameId },
       include: {
@@ -160,17 +164,20 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
     if (game && game.rounds.length > 0) {
       logger.warn('First round already created');
 
-      throw new Error(GameErrors.FIRST_ROUND_ALREADY_CREATED);
+      throw new Error(RoundErrors.FIRST_ROUND_ALREADY_CREATED);
     }
-
-    const round = await db.round.create({ data: { sessionId: gameId } });
-    logger.info(`Round created. Id=${round.id}`);
 
     if (!game) {
       logger.error(`Game with id=${gameId} is not found`);
 
       throw new Error(GameErrors.GAME_IS_NOT_FOUND);
     }
+
+    const playersOrder = createPlayersQueue(game.players);
+    const round = await db.round.create({
+      data: { sessionId: gameId, activeRoleId: playersOrder[0].id },
+    });
+    logger.info(`Round created. Id=${round.id}`);
 
     if (game.players.length < MIN_PLAYERS) {
       logger.warn('Not enough users to start game');
@@ -181,7 +188,7 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
     }
 
     await Promise.all(
-      game.players.map(({ userId }) => notifyUserRoundStarted({ userId }))
+      game.players.map(({ userId }) => notifyUserRoundStarted({ userId, roundIndex }))
     );
 
     const playersPairs = createPlayersPairs({ players: game.players });
@@ -208,6 +215,8 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
         roundId: activeRound.id,
         assignedToId: to.id,
         createdById: from.id,
+        // Optimise order random
+        order: playersOrder.findIndex(({ id }) => id === to.id),
       })),
     });
 
@@ -256,5 +265,149 @@ function createCreatePlayersPairs({ logger: baseLogger }: DepsContainer) {
     logger.info({ pairs: randomPairs }, 'Pairs created');
 
     return randomPairs;
+  };
+}
+
+type CreateSetupRole = {
+  assignedToId: number;
+  title: string;
+};
+
+export function createSetupRole({ db }: DepsContainer) {
+  return ({ assignedToId, title }: CreateSetupRole) => {
+    return db.role.update({
+      where: {
+        assignedToId,
+      },
+      data: {
+        title,
+      },
+    });
+  };
+}
+
+type CreateFinishRound = {
+  userId: number;
+};
+
+export function createFinishRound(depsContainer: CreateStartRoundParams) {
+  const { db, logger: baseLogger } = depsContainer;
+  const logger = baseLogger.child({ context: 'createCreatePlayersPairs' });
+  const startRound = createStartRound(depsContainer);
+
+  return async ({ userId }: CreateFinishRound) => {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      include: {
+        players: {
+          where: { isActive: true, isCreator: true },
+          include: {
+            session: {
+              include: {
+                rounds: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      logger.error(`User with sepcified id=${userId} is not found`);
+
+      throw new Error(GameErrors.USER_IS_NOT_FOUND);
+    }
+
+    const [player] = user.players;
+
+    if (!player) {
+      logger.warn(`User with id=${userId} have no creator access`);
+
+      throw new Error(RoundErrors.PLAYER_HAVE_NO_FINISH_ROUND_ACCESS_RIGHTS);
+    }
+
+    const { rounds } = player.session;
+
+    await db.round.update({
+      where: {
+        id: rounds[rounds.length - 1].id,
+      },
+      data: {
+        isActive: false,
+      },
+    });
+
+    await startRound({
+      gameId: player.session.id,
+      roundIndex: player.session.rounds.length + 1,
+    });
+  };
+}
+
+function createPlayersQueue<T>(array: T[]) {
+  return [...array].sort(() => {
+    const value = Math.random();
+
+    switch (true) {
+      case value > 0.5:
+        return 1;
+      case value < 0.5:
+        return -1;
+      default:
+        return 0;
+    }
+  });
+}
+
+type PassStepParams = {
+  userId: number;
+};
+
+export function createPassStep(depsContainer: DepsContainer) {
+  const { db, logger: baseLogger } = depsContainer;
+  const logger = baseLogger.child({ context: 'createPassStep' });
+
+  return async ({ userId }: PassStepParams) => {
+    const round = await db.round.findFirst({
+      where: {
+        isActive: true,
+        activeRole: {
+          assignedTo: {
+            userId,
+          },
+        },
+      },
+      include: {
+        activeRole: true,
+        roles: true,
+      },
+    });
+
+    if (!round) {
+      logger.error('Round is not found', { userId });
+
+      return new Error(RoundErrors.ROUND_IS_NOT_FOUND);
+    }
+    const { activeRole } = round;
+
+    if (activeRole === null) {
+      logger.error('Current round have no active role', { roundId: round.id });
+
+      return new Error(RoundErrors.CURRECT_ROUND_HAVE_NO_ACTIVE_ROLE);
+    }
+
+    const nextRoleInCurrentCycle = round.roles.find(
+      ({ order }) => activeRole.order + 1 === order
+    );
+    const nextRole = nextRoleInCurrentCycle || round.roles[0];
+
+    return db.round.update({
+      where: {
+        id: round.id,
+      },
+      data: {
+        activeRoleId: nextRole.id,
+      },
+    });
   };
 }

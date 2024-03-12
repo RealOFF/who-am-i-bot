@@ -49,21 +49,26 @@ model Round {
   updatedAt DateTime @updatedAt
   session   Session  @relation(fields: [sessionId], references: [id])
   sessionId Int
-  roles     Role[]
+  roles     Role[] @relation("Roles_in_Round")
   isActive  Boolean  @default(true)
+  // Find the way to remove optional
+  activeRole Role?  @relation("Round_with_ActiveRole", fields: [activeRoleId], references: [id])
+  activeRoleId Int @unique
 }
 
 model Role {
   id           Int      @id @default(autoincrement())
+  order Int
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   title        String
-  round        Round    @relation(fields: [roundId], references: [id])
+  round        Round    @relation("Roles_in_Round", fields: [roundId], references: [id])
   roundId      Int      @unique
   assignedTo   Player   @relation("Role_assignedTo_Player", fields: [assignedToId], references: [id])
   assignedToId Int      @unique
   createdBy    Player   @relation("Role_createdBy_Player", fields: [createdById], references: [id])
   createdById  Int
+  activeRound Round? @relation("Round_with_ActiveRole")
 }
 
 enum TextRequestType {
