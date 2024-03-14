@@ -1,22 +1,21 @@
-import { type DepsContainer } from '../../core';
 import {
   createCreateGameCommandHandler,
   createStartGameCommandHandler,
-  createSetupRoleHandler,
-  createFinishRoundCommandHandler,
-  createPassStepCommandHandler,
 } from './game.handler';
 import { createAttendGame } from './game.service';
+import { createRoundModule, type CreateRoundModule } from './round';
 
-export function createGameModule(depsContainer: DepsContainer) {
+export type CreateGameModule = CreateRoundModule;
+
+export function createGameModule(depsContainer: CreateGameModule) {
+  const roundModule = createRoundModule(depsContainer);
+
   createCreateGameCommandHandler(depsContainer);
-  createStartGameCommandHandler(depsContainer);
-  createSetupRoleHandler(depsContainer);
-  createFinishRoundCommandHandler(depsContainer);
-  createPassStepCommandHandler(depsContainer);
+  createStartGameCommandHandler({
+    ...depsContainer,
+    startRound: roundModule.startRound,
+  });
   const attendGame = createAttendGame(depsContainer);
 
-  return {
-    attendGame,
-  };
+  return { attendGame };
 }

@@ -1,11 +1,11 @@
 import { type DepsContainer } from '../../core';
 import { createGameModule } from '../game';
-import { createAuthHandler } from '../auth';
+import { createUserModule } from '../user';
 import { createStartCommandHandler } from './base.handler';
 
 export function createBaseModule(depsContainer: DepsContainer) {
-  createAuthHandler(depsContainer);
-  const { attendGame } = createGameModule(depsContainer);
+  const { onUserTextRequest } = createUserModule(depsContainer);
+  const { attendGame } = createGameModule({ ...depsContainer, onUserTextRequest });
   createStartCommandHandler({
     ...depsContainer,
     attendGame,
