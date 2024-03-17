@@ -8,9 +8,10 @@ export const START_GAME_ERROR_MESSAGES = {
   [StartGameErrors.PLAYER_HAVE_NO_START_GAME_ACCESS_RIGHTS]:
     'You are have no start game rights.',
   [AttendGameErrors.GAME_IS_NOT_FOUND]: 'Game with provided id is not found.',
-  [StartRoundErrors.NOT_ENOUGH_USERS_TO_START_GAME]:
+  [StartRoundErrors.NOT_ENOUGH_USERS_TO_START_ROUND]:
     'Not enough users to start game. It should be minimum 2 users.',
   [StartRoundErrors.ACTIVE_ROUND_IS_NOT_FOUND]: 'Unknown error.',
+  [StartRoundErrors.ROLE_IS_NOT_FOUND]: 'Unknown error.',
 };
 
 export const renderRoomCreated = (password: string) =>

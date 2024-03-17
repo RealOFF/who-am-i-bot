@@ -1,11 +1,12 @@
 import { type DepsContainer } from '../../../core';
 import { TextRequestType } from '../../../domain';
-import { createCreatePlayersPairs, createPlayersQueue } from '../player';
+import { createCreatePlayersPairs } from '../player';
 import {
   createOkResult,
   createErrResult,
   createEmptyOkResult,
   type Result,
+  orderByRandom,
 } from '../../../common';
 
 export type CreateStartRoundParams = {
@@ -27,10 +28,11 @@ export type StartRoundParams = {
 const MIN_PLAYERS = 2;
 
 export enum StartRoundErrors {
-  NOT_ENOUGH_USERS_TO_START_GAME = 'NOT_ENOUGH_USERS_TO_START_GAME',
+  NOT_ENOUGH_USERS_TO_START_ROUND = 'NOT_ENOUGH_USERS_TO_START_GAME',
   GAME_IS_NOT_FOUND = 'GAME_IS_NOT_FOUND',
   FIRST_ROUND_ALREADY_CREATED = 'FIRST_ROUND_ALREADY_CREATED',
   ACTIVE_ROUND_IS_NOT_FOUND = 'ACTIVE_ROUND_IS_NOT_FOUND',
+  ROLE_IS_NOT_FOUND = 'ROLE_IS_NOT_FOUND',
 }
 
 export function createStartRound(depsContainer: CreateStartRoundParams) {
@@ -67,11 +69,9 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
       return createErrResult(StartRoundErrors.FIRST_ROUND_ALREADY_CREATED);
     }
 
-    const playersOrder = createPlayersQueue(game.players);
     const round = await db.round.create({
       data: {
         sessionId: gameId,
-        activeRoleId: playersOrder[0].id,
       },
     });
     logger.info(`Round created. Id=${round.id}`);
@@ -80,7 +80,7 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
       logger.warn('Not enough users to start game');
 
       if (game.players.length === 1) {
-        return createErrResult(StartRoundErrors.NOT_ENOUGH_USERS_TO_START_GAME);
+        return createErrResult(StartRoundErrors.NOT_ENOUGH_USERS_TO_START_ROUND);
       }
     }
 
@@ -95,31 +95,39 @@ export function createStartRound(depsContainer: CreateStartRoundParams) {
 
     const playersPairs = createPlayersPairs({ players: game.players });
 
-    await db.user.updateMany({
-      data: { activeTextRequestType: TextRequestType.SETUP_ROLE_NAME },
+    const roles = playersPairs.map(({ from, to }) => ({
+      title: '',
+      roundId: round.id,
+      assignedToId: to.id,
+      createdById: from.id,
+    }));
+    const orderedRoles = orderByRandom(roles);
+    const rolesWithOrder = orderedRoles.map((role, index) => ({ ...role, order: index }));
+
+    await db.role.createMany({
+      data: rolesWithOrder,
     });
-    const activeRound = await db.round.findFirst({
+    const activeRole = await db.role.findFirst({
+      where: { order: 0 },
+    });
+
+    if (activeRole === null) {
+      logger.error('Role is not found');
+
+      return createErrResult(StartRoundErrors.ROLE_IS_NOT_FOUND);
+    }
+
+    await db.round.update({
       where: {
-        sessionId: gameId,
-        isActive: true,
+        id: round.id,
+      },
+      data: {
+        activeRoleId: activeRole.id,
       },
     });
 
-    if (!activeRound) {
-      logger.error(`Active round with gameId=${gameId} is not found.`);
-
-      return createErrResult(StartRoundErrors.ACTIVE_ROUND_IS_NOT_FOUND);
-    }
-
-    await db.role.createMany({
-      data: playersPairs.map(({ from, to }) => ({
-        title: '',
-        roundId: activeRound.id,
-        assignedToId: to.id,
-        createdById: from.id,
-        // Optimise order random
-        order: playersOrder.findIndex(({ id }) => id === to.id),
-      })),
+    await db.user.updateMany({
+      data: { activeTextRequestType: TextRequestType.SETUP_ROLE_NAME },
     });
 
     playersPairs.forEach(({ from, to }) =>

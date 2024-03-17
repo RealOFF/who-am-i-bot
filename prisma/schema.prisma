@@ -51,9 +51,8 @@ model Round {
   sessionId Int
   roles     Role[] @relation("Roles_in_Round")
   isActive  Boolean  @default(true)
-  // Find the way to remove optional
   activeRole Role?  @relation("Round_with_ActiveRole", fields: [activeRoleId], references: [id])
-  activeRoleId Int @unique
+  activeRoleId Int? @unique
 }
 
 model Role {

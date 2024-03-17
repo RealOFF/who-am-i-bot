@@ -9,7 +9,8 @@ export const FINISH_ROUND_ERROR_MESSAGES = {
   [StartRoundErrors.ACTIVE_ROUND_IS_NOT_FOUND]: 'Unknown error.',
   [StartRoundErrors.FIRST_ROUND_ALREADY_CREATED]: 'Unknown error.',
   [StartRoundErrors.GAME_IS_NOT_FOUND]: 'Unknown error.',
-  [StartRoundErrors.NOT_ENOUGH_USERS_TO_START_GAME]: 'Unknown error.',
+  [StartRoundErrors.NOT_ENOUGH_USERS_TO_START_ROUND]: 'Unknown error.',
+  [StartRoundErrors.ROLE_IS_NOT_FOUND]: 'Unknown error.',
 };
 
 export const ROUND_STARTED_MESSAGE = 'First round started.';

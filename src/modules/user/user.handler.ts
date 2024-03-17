@@ -54,7 +54,7 @@ export function createUserTextRequestHandler(depsContainer: DepsContainer) {
   const logger = baseLogger.child({ context: 'createUserTextRequestHandler' });
   const handlers = new Map<keyof typeof TextRequestType, OnUserTextRequestHandler[]>();
 
-  bot.hears(/.*/, async ctx => {
+  bot.hears(/^(?!\/).+/, async ctx => {
     logger.info(`Text message recieved: ${ctx.match.input}`);
 
     const user = await db.user.findUnique({ where: { id: ctx.message.from.id } });
